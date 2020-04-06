@@ -14,8 +14,6 @@ def read():
         patDat['time'] = pd.to_datetime(patDat['time']).dt.date
         #patDat.index = pd.to_datetime(patDat['time'])
         #del patDat['time']
-        patDat['id'] = range(len(patDat))
-        print(patDat.columns)
         cleanPat = patDat.pivot_table(index="time", columns="variable", values="value", aggfunc=np.mean)
         cleanPat.to_csv("./patientData/patient" + i + ".csv")
 
