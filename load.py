@@ -14,9 +14,19 @@ def read():
         patDat['time'] = pd.to_datetime(patDat['time']).dt.date
         #patDat.index = pd.to_datetime(patDat['time'])
         #del patDat['time']
-        cleanPat = patDat.pivot_table(index="time", columns="variable", values="value", aggfunc=np.mean)
+        p = patDat.variable
+        meanVals = ['mood','activity','circumplex.arousal','circumplex.valence']
+        meanTable = patDat.loc[p.isin(meanVals)]
+        sumTable = patDat.loc[~p.isin(meanVals)]
+        cleanMean = meanTable.pivot_table(index="time", columns="variable", values="value", aggfunc=np.mean)
+        cleanSum = sumTable.pivot_table(index="time", columns="variable", values="value", aggfunc=np.sum)
+        cleanPat = cleanMean.join(cleanSum)
         cleanPat.to_csv("./patientData/patient" + i + ".csv")
 
+
+
+def pivotFunc(x):
+    return x[0]
         
 
 if __name__ == '__main__':
