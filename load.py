@@ -36,7 +36,7 @@ def clean(data):
         raise Exception 
     #A check on the number of mood rows over 2 with NaN seems appropriate but none of the passing datasets have this    
     cleaner['mood'] = cleaner['mood'].interpolate()
-    #It is only possible the first or last columns do not have a value after interpolation
+    #It is only possible the first or last rows do not have a value after interpolation
     cleaner.dropna(inplace=True)
     #print("mood values null: ",cleaner.isnull().sum())
 
@@ -45,9 +45,6 @@ def clean(data):
     #for d in cleaner.itertuples():
      #   previous = d.index
 
-
-
-    return data
 
 def order_AR(data): 
     ar_data = data
@@ -71,28 +68,31 @@ def order_AR(data):
     plt.show()
 
 
-def ARIMA(data):
-    #ass = data['mood'].copy().shift(-1)
-    #ar_data = pd.DataFrame(data['mood'],columns=['mood'])
-    #ar_data.index = data['time']
+def ARIMA_run(data):
     ar_data = data
     result_fuller = adfuller(ar_data['mood'].dropna())
     if result_fuller[1] > 0.05: 
-        print("P-Value suggests time series is not stationary")
+        print("ERROR: P-Value suggests time series is not stationary")
         raise Exception
-    return ar_data
-    #print(ar_data)
-    #order_AR(ar_data)
-    #print(ar_data)
+    #Uncomment for plot of mood per patient
     #plt.plot(ar_data['mood'])
     #plt.show()
+    model = ARIMA(ar_data['mood'], order=(1,1,0))
+    model_fit = model.fit(disp=0)
 
+    model_fit.plot_predict(dynamic=False)
+    plt.show()
+    print(model_fit.summary())
+
+    #plt.plot(model)
+  
+    return ar_data
 
 if __name__ == '__main__':
-    patientNo = "AS14.31"
+    patientNo = "AS14.01"
     data = pd.read_csv(open("./patientData/patient" + patientNo + ".csv"))
-    data = clean(data)
-    ARIMA(data)
+#    data = clean(data)
+#    ARIMA_run(data)
 
 
     for i in range(1,34):
@@ -103,11 +103,9 @@ if __name__ == '__main__':
             data = pd.read_csv(open("./patientData/patient" + patient + ".csv"))
             try: data_cleaned = clean(data)
             except: continue
-            try: arima = ARIMA(data_cleaned)
+            try: arima = ARIMA_run(data_cleaned)
             except: continue
-
-            arima.to_csv("./patientDataARCleaned/patient" + patientNo + ".csv")
-            #ARIMA(data)
+            #arima.to_csv("./patientDataARCleaned/patient" + patientNo + ".csv")
         except: print("ERROR: Patient " + str(i) + " does not exist")
 
 
