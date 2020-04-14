@@ -40,6 +40,26 @@ def readPop():
     #data3.to_csv("./patientDataARCleaned/population.csv")
     return data3
 
+def readAllMood(patientNo):
+    data = pd.read_csv(open("./dataset_mood_smartphone.csv"))
+    i =  "AS14." + patientNo
+    patDat = data.loc[(data.id == i) & (data.variable=="mood")]
+    if len(patDat) < 10: 
+        print("Data does not Exist")
+        raise Exception
+    del patDat['id']
+    del patDat['Unnamed: 0']
+    patDat.index = pd.to_datetime(patDat['time'])
+    del patDat['variable']
+    del patDat['time']
+    patDat.rename(columns={'value':'mood'},inplace=True)
+    patDat = patDat['mood'].resample('3H').mean()
+    clean = pd.DataFrame(patDat.interpolate(),columns=['mood'])
+    ARIMA_run(clean,patientNo,'3H')
+
+
+
+
 def clean(data):
     data2 = data[(data['time'] > '2014-03-01') & (data['time'] < '2014-05-01') ]
     cleaner = pd.DataFrame(data2['mood'],columns=['mood'])
@@ -83,7 +103,7 @@ def order_AR(data):
     plt.show()
 
 
-def ARIMA_run(data,patient):
+def ARIMA_run(data,patient,runtype=''):
     ar_data = data
     result_fuller = adfuller(ar_data['mood'].dropna())
     if result_fuller[1] > 0.05: 
@@ -115,7 +135,10 @@ def ARIMA_run(data,patient):
                      color='k', alpha=.15)
     plt.title('Forecast vs Actuals : Patient '+ patient)
     plt.legend(loc='upper left', fontsize=8)
-    plt.savefig('./AR_predict_per_day/patient_'+patient+'.png')
+    if runtype=='D': plt.savefig('./AR_predict_per_day/patient_'+patient+'.png')
+    elif runtype=='3H':  plt.savefig('./AR_predict_per_3hours/patient ' + patient + 'png')
+    else: plt.show()
+    plt.close()
     #plt.show()
     #model = ARIMA(ar_data['mood'], order=(1,1,0))
     #model_fit = model.fit(disp=0)
@@ -129,6 +152,17 @@ def ARIMA_run(data,patient):
     return ar_data
 
 if __name__ == '__main__':
+    '''
+    for i in range(1,34):
+        patientNo = str(i)
+        patient = "AS14." + patientNo.zfill(2)
+        try: readAllMood(patientNo)
+        except: continue
+
+    #readAllMood("02")
+
+'''
+
     #readPop()
     #pop_data = pd.read_csv(open("./patientDataARCleaned/population.csv"))
     #order_AR(pop_data)
@@ -139,7 +173,7 @@ if __name__ == '__main__':
 #    data = clean(data)
 #    ARIMA_run(data)
 
-
+'''
     for i in range(1,34):
         patientNo = str(i)
         patient = "AS14." + patientNo.zfill(2)
@@ -148,8 +182,14 @@ if __name__ == '__main__':
             data = pd.read_csv(open("./patientData/patient" + patient + ".csv"))
             try: data_cleaned = clean(data)
             except: continue
-            try: arima = ARIMA_run(data_cleaned,patientNo)
+            try: arima = ARIMA_run(data_cleaned,patientNo,'D')
             except: continue
             #arima.to_csv("./patientDataARCleaned/patient" + patientNo + ".csv")
         except: print("ERROR: Patient " + str(i) + " does not exist")
+'''
+
+    
+        #arima.to_csv("./patientDataARCleaned/patient" + patientNo + ".csv")
+
+
 
