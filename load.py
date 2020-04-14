@@ -25,6 +25,21 @@ def read():
         cleanPat = cleanMean.join(cleanSum)
         cleanPat.to_csv("./patientData/patient" + i + ".csv")
 
+def readPop():
+    data = pd.read_csv(open("./dataset_mood_smartphone.csv"))
+    data2 = data.loc[data.variable=='mood']
+    data3 = data2[(data2['time'] > '2014-03-01') & (data2['time'] < '2014-05-01') ]
+    data3.index = pd.to_datetime(data3['time'])
+    del data3['id']
+    del data3['Unnamed: 0']
+    del data3['variable']
+    del data3['time']
+    data3 =data3.sort_index()
+    data3.rename(columns={'value':'mood'},inplace=True)
+    data3 = data3['mood'].resample('D').mean()
+    #data3.to_csv("./patientDataARCleaned/population.csv")
+    return data3
+
 def clean(data):
     data2 = data[(data['time'] > '2014-03-01') & (data['time'] < '2014-05-01') ]
     cleaner = pd.DataFrame(data2['mood'],columns=['mood'])
@@ -68,7 +83,7 @@ def order_AR(data):
     plt.show()
 
 
-def ARIMA_run(data):
+def ARIMA_run(data,patient):
     ar_data = data
     result_fuller = adfuller(ar_data['mood'].dropna())
     if result_fuller[1] > 0.05: 
@@ -77,18 +92,48 @@ def ARIMA_run(data):
     #Uncomment for plot of mood per patient
     #plt.plot(ar_data['mood'])
     #plt.show()
-    model = ARIMA(ar_data['mood'], order=(1,1,0))
-    model_fit = model.fit(disp=0)
+    tr = int(0.8*len(ar_data))
+    train = ar_data.mood[0:tr]
+    test = ar_data.mood[tr:len(ar_data)]
+    model = ARIMA(train, order=(1, 1, 0))  
+    fitted = model.fit(disp=-1)  
+    #https://www.machinelearningplus.com/time-series/arima-model-time-series-forecasting-python/
 
-    model_fit.plot_predict(dynamic=False)
-    plt.show()
-    print(model_fit.summary())
+    fc, se, conf = fitted.forecast(len(test), alpha=0.05)  # 95% conf
+
+
+    fc_series = pd.Series(fc, index=test.index)
+    lower_series = pd.Series(conf[:, 0], index=test.index)
+    upper_series = pd.Series(conf[:, 1], index=test.index)
+
+    
+    plt.figure(figsize=(12,5), dpi=100)
+    plt.plot(train, label='training')
+    plt.plot(test, label='actual')
+    plt.plot(fc_series, label='forecast')
+    plt.fill_between(lower_series.index, lower_series, upper_series, 
+                     color='k', alpha=.15)
+    plt.title('Forecast vs Actuals : Patient '+ patient)
+    plt.legend(loc='upper left', fontsize=8)
+    plt.savefig('./AR_predict_per_day/patient_'+patient+'.png')
+    #plt.show()
+    #model = ARIMA(ar_data['mood'], order=(1,1,0))
+    #model_fit = model.fit(disp=0)
+
+    #model_fit.plot_predict(dynamic=False)
+    #plt.show()
+    #print(model_fit.summary())
 
     #plt.plot(model)
   
     return ar_data
 
 if __name__ == '__main__':
+    #readPop()
+    #pop_data = pd.read_csv(open("./patientDataARCleaned/population.csv"))
+    #order_AR(pop_data)
+    #ARIMA_run(pop_data)
+    
     patientNo = "AS14.01"
     data = pd.read_csv(open("./patientData/patient" + patientNo + ".csv"))
 #    data = clean(data)
@@ -103,9 +148,8 @@ if __name__ == '__main__':
             data = pd.read_csv(open("./patientData/patient" + patient + ".csv"))
             try: data_cleaned = clean(data)
             except: continue
-            try: arima = ARIMA_run(data_cleaned)
+            try: arima = ARIMA_run(data_cleaned,patientNo)
             except: continue
             #arima.to_csv("./patientDataARCleaned/patient" + patientNo + ".csv")
         except: print("ERROR: Patient " + str(i) + " does not exist")
-
 
