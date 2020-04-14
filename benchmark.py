@@ -1,56 +1,58 @@
 import os
 import pandas as pd
+from sklearn.metrics import accuracy_score, mean_squared_error
+import math
+import datetime
 
 
-def aggregate_data(folderpath):
-    for filename in os.listdir(folderpath)[:1]:
+def create_benchmark(folderpath):
+    """
+    Loops over the data
+    :param folderpath:
+    :return: data
+    """
+    complete_data = pd.DataFrame()
+
+    for filename in os.listdir(folderpath):
         data = pd.read_csv(folderpath + filename)
 
         # Create patient number column
         patientno = filename.replace("patientAS14.", "").replace(".csv", "")
         data["patient"] = patientno
 
-        # Reorder the columns so patient is in the front
-        patient = data["patient"]
-        data.drop(labels=["patient"], axis=1, inplace=True)
-        data.insert(0, "patient", patient)
-
-        # Split time to get month and day
-        for index, row in data.iterrows():
-            year, month, day = row["time"].split("-")
-            data.at[index, "month"] = month
-            data.at[index, "day"] = day
-
-        # Remove the time column and move month and day to the front
-        month = data["month"]
-        day = data["day"]
-        data.drop(labels=["month", "day", "time"], axis=1, inplace=True)
-        data.insert(1, "month", month)
-        data.insert(2, "day", day)
-
-        # Move mood to last column
-        mood = data["mood"]
-        data.drop(labels=["mood"], axis=1, inplace=True)
-        data.insert(21, "mood", mood)
-
-        # Fill NaN for all columns apart from mood
-        columns = list(data.columns[3:21])
-        data[columns] = data[columns].fillna(value=0)
-
-        # TODO: Make sure the benchmark takes the day before and not any other day.
         # Create column with benchmark prediction
+        # Convert time to datetime
+        data["time"] = pd.to_datetime(data["time"])
+        data["day_dif"] = data.time - data.time.shift()
+
+        data.drop(data[data["day_dif"] != "1 days"].index, inplace=True)
         data["benchmark"] = data.mood.shift()
 
         # Drop empty mood and benchmark columns
         data = data[data["mood"].notna()]
         data = data[data["benchmark"].notna()]
 
-        print(data)
+        # Drop all unnecessary columns
+        cols = ["patient", "time", "mood", "benchmark"]
+        data = data[cols]
 
+        complete_data = complete_data.append(data)
+    complete_data.to_csv('./benchmark_data/benchmark.csv')
+    return complete_data
 
-# def create_benchmark():
+def evaluate_benchmark(folderpath):
+    data = create_benchmark(folderpath)
+    y_true = data["mood"].to_numpy()
+    y_pred = data["benchmark"].to_numpy()
+    rmse = math.sqrt(mean_squared_error(y_true, y_pred))
 
-# def evaluate_benchmark():
+    y_true = data["mood"].astype(int).to_numpy()
+    y_pred = data["benchmark"].astype(int).to_numpy()
+    accuracy = accuracy_score(y_true, y_pred)
+
+    print(accuracy, rmse)
+    return accuracy, rmse
+
 
 folderpath = "./patientData/"
-aggregate_data(folderpath)
+evaluate_benchmark(folderpath)
