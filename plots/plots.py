@@ -3,6 +3,7 @@ import matplotlib.dates as mdates
 import csv
 import datetime
 
+
 def plot_population(population_csv):
     x = []
     y = []
@@ -27,11 +28,10 @@ def plot_population(population_csv):
     plt.xlabel('Date')
     plt.ylabel('Average mood score of the population')
     plt.title('Average mood per day of the entire population')
-    plt.show()
-
+    plt.savefig("average_mood_population.png")
 
 def run():
-    population_csv = "./patientDataARCleaned/population.csv"
+    population_csv = "../patientDataARCleaned/population.csv"
     plot_population(population_csv)
 
 
