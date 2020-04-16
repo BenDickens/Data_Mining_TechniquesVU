@@ -30,8 +30,9 @@ def plot_population(population_csv):
     plt.title('Average mood per day of the entire population')
     plt.savefig("average_mood_population.png")
 
+
 def run():
-    population_csv = "../patientDataARCleaned/population.csv"
+    population_csv = "./plots/population.csv"
     plot_population(population_csv)
 
 
