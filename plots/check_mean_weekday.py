@@ -39,8 +39,6 @@ def plot_mean_weekday(average_weekday_csv):
             x.append(row[1])
             y.append(float(row[2]))
 
-    print(x, y)
-
     plt.plot(x, y)
     plt.xlabel('Day of the week')
     plt.ylabel('Average mood score of the population')
